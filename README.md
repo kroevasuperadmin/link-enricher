@@ -8,7 +8,7 @@ A list of saved links is hard to use until each entry has a title, an author and
 
 - **Dedupes on what the link points at.** `twitter.com/u/status/9?s=20` and `x.com/v/status/9` are one link. So are `youtu.be/ID` and `youtube.com/watch?v=ID&feature=share`, and an Instagram reel with and without `?igsh=`.
 - **Uses the right source per site.** GitHub repos come from the GitHub API (stars, language, license, last push). X posts and YouTube videos come from oEmbed, since their HTML is empty without JavaScript. Everything else is read from Open Graph tags, JSON-LD, `<title>` and the visible text.
-- **Checks for private targets.** Every request, including each redirect hop, is checked against private, loopback and link-local addresses, so a pasted `http://169.254.169.254/` is refused instead of fetched (the Limits section covers the DNS caveat). Responses are capped at 1 MB and 15 s.
+- **Checks for private targets.** Every request, including each redirect hop, is checked against private, loopback and link-local addresses, so a pasted `http://169.254.169.254/` is refused instead of fetched (the Limits section covers the DNS caveat). Responses default to a 1 MB size limit and a 15 s timeout (`--timeout` changes the timeout).
 - **Reports failures per link.** A broken URL becomes a record with `ok: false` and an `error`.
 
 It has no dependencies and needs Node 20 or later.
