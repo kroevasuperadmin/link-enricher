@@ -7,7 +7,7 @@
   "bin": { "link-enricher": "bin/link-enricher.js" },
   "files": ["src", "bin"],
   "engines": { "node": ">=20" },
-  "scripts": { "test": "node --test test/" },
+  "scripts": { "test": "node --test test/*.test.js" },
   "license": "MIT",
   "repository": { "type": "git", "url": "git+https://github.com/kroevasuperadmin/link-enricher.git" },
   "keywords": ["links", "bookmarks", "opengraph", "metadata", "url", "dedupe"]
