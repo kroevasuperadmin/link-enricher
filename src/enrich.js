@@ -4,6 +4,7 @@ import { classifyUrl } from './classify.js';
 import { dedupe, dedupeKey, normalizeUrl } from './normalize.js';
 import { fetchPage } from './fetch.js';
 import { parseHtml } from './parse.js';
+import { runProvider } from './providers.js';
 
 const THIN_EXCERPT = 80;
 
@@ -13,6 +14,8 @@ const THIN_EXCERPT = 80;
  * @param {object} [options]
  * @param {boolean} [options.network=true] false classifies and normalises only
  * @param {Record<string,string>} [options.context] text to use when a page is empty or blocked, keyed by URL or dedupe key
+ * @param {boolean} [options.providers=true] use the GitHub API and oEmbed where they apply
+ * @param {string} [options.githubToken] raises the GitHub API rate limit
  * @param {object} [options.fetch] passed to fetchPage (fetchImpl, timeoutMs, maxBytes, assertUrl...)
  */
 export async function enrichUrl(input, options = {}) {
@@ -32,7 +35,17 @@ export async function enrichUrl(input, options = {}) {
   };
   const fallback = context[url] ?? context[key] ?? context[input];
 
-  if (network) {
+  let provided = false;
+  if (network && options.providers !== false) {
+    const hit = await runProvider(url, { fetch: fetchOptions, githubToken: options.githubToken });
+    if (hit) {
+      Object.assign(record, hit.fields);
+      record.source = hit.name;
+      provided = true;
+    }
+  }
+
+  if (network && !provided) {
     try {
       const page = await fetchPage(url, fetchOptions);
       record.status = page.status;
