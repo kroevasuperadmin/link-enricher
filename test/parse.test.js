@@ -52,3 +52,9 @@ test('malformed input never throws', () => {
   assert.doesNotThrow(() => parseHtml('', 'https://a.com'));
   assert.equal(decodeEntities('&#99999999999; &unknown;'), ' &unknown;');
 });
+
+test('non-http image and icon URLs (data:, javascript:) are dropped', () => {
+  const r = parseHtml('<head><meta property="og:image" content="javascript:alert(1)"><link rel="icon" href="data:,"></head>', 'https://a.com/p');
+  assert.equal(r.image, undefined);
+  assert.equal(r.favicon, 'https://a.com/favicon.ico');
+});

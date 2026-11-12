@@ -59,7 +59,8 @@ function toIso(value) {
 function absolute(href, base) {
   if (!href) return undefined;
   try {
-    return new URL(href, base).toString();
+    const u = new URL(href, base);
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u.toString() : undefined;
   } catch {
     return undefined;
   }
