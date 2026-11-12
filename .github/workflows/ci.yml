@@ -1,0 +1,22 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm test
+      - name: CLI smoke test (offline)
+        run: |
+          printf 'https://example.com/a?utm_source=x\nhttps://www.example.com/a/\n' | node bin/link-enricher.js --no-network -f ndjson | tee out.ndjson
+          test "$(wc -l < out.ndjson)" = 1
