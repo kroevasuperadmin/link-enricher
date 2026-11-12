@@ -1,0 +1,14 @@
+{
+  "name": "link-enricher",
+  "version": "0.1.0",
+  "description": "Turn a pile of URLs into deduplicated, classified records with titles, descriptions, authors and dates.",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": { "link-enricher": "bin/link-enricher.js" },
+  "files": ["src", "bin"],
+  "engines": { "node": ">=20" },
+  "scripts": { "test": "node --test test/" },
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/kroevasuperadmin/link-enricher.git" },
+  "keywords": ["links", "bookmarks", "opengraph", "metadata", "url", "dedupe"]
+}
