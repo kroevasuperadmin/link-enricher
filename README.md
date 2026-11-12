@@ -69,7 +69,7 @@ Each record has `url`, `key` (the dedupe identity), `type` (`reel`, `carousel`, 
 
 ## Limits
 
-The address check resolves a hostname before the fetch resolves it again, so a DNS server that answers differently the second time can get past it. Do not run the tool on hostile lists from a host that can reach internal services. It reads server-rendered HTML and public APIs only. Instagram and TikTok pages return little without a session, so pass the caption through `--context` or feed the record to your own step. Output is data, not a verdict: deciding what a link is worth is up to you.
+The address check resolves a hostname before the fetch resolves it again, so a DNS server that answers differently the second time can get past it. Do not run the tool on hostile lists from a host that can reach internal services. It reads server-rendered HTML and public APIs only. Instagram and TikTok pages return little without a session, so pass the caption through `--context` or feed the record to your own step. Judging what a link is worth is left to you.
 
 ## Tests
 
