@@ -75,6 +75,16 @@ test('honours the declared charset', async () => {
 });
 
 test('a hung server hits the timeout', async () => {
-  const fetchImpl = (u, { signal }) => new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason)));
-  await assert.rejects(fetchPage('https://a.com/', { fetchImpl, assertUrl: ok, timeoutMs: 30 }));
+  const fetchImpl = (u, { signal }) => new Promise((_, reject) => {
+    // Model a live request handle: AbortSignal.timeout itself is unreferenced.
+    const request = setTimeout(() => reject(new Error('mock request did not abort')), 1000);
+    signal.addEventListener('abort', () => {
+      clearTimeout(request);
+      reject(signal.reason);
+    }, { once: true });
+  });
+  await assert.rejects(
+    fetchPage('https://a.com/', { fetchImpl, assertUrl: ok, timeoutMs: 30 }),
+    { name: 'TimeoutError' },
+  );
 });
