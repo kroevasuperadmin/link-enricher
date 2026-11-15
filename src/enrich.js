@@ -89,7 +89,7 @@ function definedOnly(obj) {
  * @returns {Promise<{records: object[], duplicates: object[], invalid: string[]}>}
  */
 export async function enrichMany(inputs, options = {}) {
-  const { concurrency = 4, onRecord } = options;
+  const { concurrency = 4, onRecord, plugin } = options;
   const { unique, duplicates, invalid } = dedupe(inputs);
   const records = new Array(unique.length);
   let next = 0;
@@ -98,9 +98,24 @@ export async function enrichMany(inputs, options = {}) {
       const i = next++;
       if (i >= unique.length) return;
       records[i] = await enrichUrl(unique[i].input, options);
+      if (plugin && records[i].ok) await applyPlugin(plugin, records[i]);
       onRecord?.(records[i], i);
     }
   }
   await Promise.all(Array.from({ length: Math.max(1, Math.min(concurrency, unique.length)) }, worker));
   return { records, duplicates, invalid };
+}
+
+/**
+ * Run a user step on a finished record, for example an LLM call that writes a
+ * takeaway. Whatever the plugin returns is stored under `record.plugin`; a
+ * thrown error is stored in `record.pluginError` and never fails the record.
+ */
+async function applyPlugin(plugin, record) {
+  try {
+    const result = await plugin({ ...record });
+    if (result !== undefined) record.plugin = result;
+  } catch (error) {
+    record.pluginError = error instanceof Error ? error.message : String(error);
+  }
 }

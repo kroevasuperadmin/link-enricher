@@ -34,3 +34,27 @@ test('assertPublicUrl rejects hostnames that resolve to private addresses (DNS r
 test('assertPublicUrl rejects unresolvable hosts', async () => {
   await assert.rejects(assertPublicUrl('https://nx.example/', { lookup: async () => { throw new Error('ENOTFOUND'); } }), /did not resolve/);
 });
+
+test('isPrivateIp normalises expanded IPv6 and hexadecimal IPv4-mapped addresses', () => {
+  for (const ip of ['0:0:0:0:0:0:0:1', '0:0:0:0:0:0:0:0', '::ffff:7f00:1',
+    '0:0:0:0:0:ffff:0a00:0001', '::ffff:a9fe:a9fe', '::ffff:c0a8:101',
+    '::ffff:6440:1', '::ffff:ac10:1', '::ffff:0:1']) {
+    assert.equal(isPrivateIp(ip), true, ip);
+  }
+  for (const ip of ['::ffff:808:808', '0:0:0:0:0:ffff:5db8:d822']) {
+    assert.equal(isPrivateIp(ip), false, ip);
+  }
+});
+
+test('assertPublicUrl rejects private IPv4-mapped URLs after URL normalisation', async () => {
+  for (const url of ['http://[::ffff:127.0.0.1]/', 'http://[::ffff:169.254.169.254]/',
+    'http://[::ffff:10.0.0.1]/', 'http://[::ffff:c0a8:101]/']) {
+    await assert.rejects(assertPublicUrl(url), /private address/, url);
+  }
+  await assertPublicUrl('http://[::ffff:8.8.8.8]/');
+});
+
+test('assertPublicUrl rejects DNS answers containing expanded mapped private addresses', async () => {
+  const lookup = async () => [{ address: '93.184.216.34' }, { address: '0:0:0:0:0:ffff:7f00:1' }];
+  await assert.rejects(assertPublicUrl('https://mapped.example/', { lookup }), /private address/);
+});

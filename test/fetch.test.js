@@ -1,6 +1,19 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fetchPage } from '../src/fetch.js';
+import { assertPublicUrl } from '../src/safety.js';
+
+test('redirect to IPv4-mapped loopback is refused before the second fetch', async () => {
+  const requested = [];
+  const fetchImpl = async (url) => {
+    requested.push(url);
+    return new Response(null, { status: 302, headers: { location: 'http://[::ffff:127.0.0.1]/admin' } });
+  };
+  await assert.rejects(fetchPage('https://93.184.216.34/', {
+    fetchImpl, assertUrl: (url) => assertPublicUrl(url),
+  }), /private address/);
+  assert.deepEqual(requested, ['https://93.184.216.34/']);
+});
 
 const ok = async () => {};
 const html = (body, extra = {}) => new Response(body, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...extra } });
@@ -62,6 +75,16 @@ test('honours the declared charset', async () => {
 });
 
 test('a hung server hits the timeout', async () => {
-  const fetchImpl = (u, { signal }) => new Promise((_, reject) => signal.addEventListener('abort', () => reject(signal.reason)));
-  await assert.rejects(fetchPage('https://a.com/', { fetchImpl, assertUrl: ok, timeoutMs: 30 }));
+  const fetchImpl = (u, { signal }) => new Promise((_, reject) => {
+    // Model a live request handle: AbortSignal.timeout itself is unreferenced.
+    const request = setTimeout(() => reject(new Error('mock request did not abort')), 1000);
+    signal.addEventListener('abort', () => {
+      clearTimeout(request);
+      reject(signal.reason);
+    }, { once: true });
+  });
+  await assert.rejects(
+    fetchPage('https://a.com/', { fetchImpl, assertUrl: ok, timeoutMs: 30 }),
+    { name: 'TimeoutError' },
+  );
 });
