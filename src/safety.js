@@ -23,10 +23,16 @@ export function isPrivateIp(ip) {
   const kind = isIP(ip);
   if (kind === 4) return ipv4Private(ip);
   if (kind === 6) {
-    const v = ip.toLowerCase();
+    // Use the same canonical form URL uses, including for DNS answers that
+    // contain expanded words or a dotted IPv4 tail. A scope ID is local-only.
+    const v = new URL(`http://[${ip.replace(/%.*/, '')}]/`).hostname.slice(1, -1).toLowerCase();
     if (v === '::' || v === '::1') return true;
-    const mapped = v.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-    if (mapped) return ipv4Private(mapped[1]);
+    const mapped = v.match(/^::ffff:([0-9a-f]+):([0-9a-f]+)$/);
+    if (mapped) {
+      const high = parseInt(mapped[1], 16);
+      const low = parseInt(mapped[2], 16);
+      return ipv4Private([high >> 8, high & 255, low >> 8, low & 255].join('.'));
+    }
     return /^(fc|fd|fe[89ab])/.test(v) || v.startsWith('ff');
   }
   return false;

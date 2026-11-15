@@ -3,6 +3,8 @@ import { readFile, writeFile, appendFile } from 'node:fs/promises';
 import { extractUrls, dedupeKey } from './normalize.js';
 import { enrichMany } from './enrich.js';
 import { toCsv } from './format.js';
+import { pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
 
 const HELP = `link-enricher: turn URLs into enriched, deduplicated records
 
@@ -22,6 +24,7 @@ Options:
       --context <file.json>       {"<url>": "text"} used when a page is empty or blocked
       --seen <file>               skip URLs listed in this file (one per line)
       --update-seen               append newly processed URLs to the --seen file
+      --plugin <file.js>          ES module whose default export is async (record) => any; the result is stored in record.plugin
       --fail-on-error             exit 1 if any record failed
   -h, --help                      show this help
 
@@ -36,6 +39,7 @@ const options = {
   'no-providers': { type: 'boolean', default: false },
   'allow-private': { type: 'boolean', default: false },
   context: { type: 'string' },
+  plugin: { type: 'string' },
   seen: { type: 'string' },
   'update-seen': { type: 'boolean', default: false },
   'fail-on-error': { type: 'boolean', default: false },
@@ -104,6 +108,17 @@ export async function run(argv, io = {}) {
     }
   }
 
+  let plugin;
+  if (values.plugin) {
+    try {
+      plugin = (await import(pathToFileURL(resolve(values.plugin)).href)).default;
+      if (typeof plugin !== 'function') throw new Error('default export must be a function');
+    } catch (error) {
+      stderr.write(`link-enricher: cannot load --plugin: ${error.message}\n`);
+      return 2;
+    }
+  }
+
   let skipped = 0;
   if (values.seen) {
     let previous = '';
@@ -120,6 +135,7 @@ export async function run(argv, io = {}) {
     providers: !values['no-providers'],
     githubToken: env.GITHUB_TOKEN,
     context,
+    plugin,
     fetch: { timeoutMs, ...(values['allow-private'] ? { assertUrl: async () => {} } : {}) },
   });
 

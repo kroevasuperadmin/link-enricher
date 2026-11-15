@@ -1,6 +1,19 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fetchPage } from '../src/fetch.js';
+import { assertPublicUrl } from '../src/safety.js';
+
+test('redirect to IPv4-mapped loopback is refused before the second fetch', async () => {
+  const requested = [];
+  const fetchImpl = async (url) => {
+    requested.push(url);
+    return new Response(null, { status: 302, headers: { location: 'http://[::ffff:127.0.0.1]/admin' } });
+  };
+  await assert.rejects(fetchPage('https://93.184.216.34/', {
+    fetchImpl, assertUrl: (url) => assertPublicUrl(url),
+  }), /private address/);
+  assert.deepEqual(requested, ['https://93.184.216.34/']);
+});
 
 const ok = async () => {};
 const html = (body, extra = {}) => new Response(body, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', ...extra } });

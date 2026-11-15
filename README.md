@@ -40,6 +40,7 @@ Arguments starting with `http://` or `https://` are URLs. Any other argument is 
 | `--context FILE.json` | `{"<url>": "text"}`, used when a page is empty or blocked (for example a reel caption you copied by hand) |
 | `--seen FILE` | skip URLs already listed in FILE; add `--update-seen` to append the new ones |
 | `--allow-private` | do not block private addresses (intranet links, fake-IP proxies). Unsafe for untrusted lists |
+| `--plugin FILE.js` | ES module whose default export is `async (record) => value`; the result is stored in `record.plugin`. Use it for a summary, tagging or a database write |
 | `--fail-on-error` | exit 1 if any record failed |
 
 `GITHUB_TOKEN` in the environment raises the GitHub API rate limit.
@@ -60,12 +61,25 @@ const { records, duplicates, invalid } = await enrichMany([
 
 ```console
 $ printf 'https://github.com/nodejs/node\nhttps://youtu.be/dQw4w9WgXcQ?si=abc\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ\n' | link-enricher -f ndjson
-{"url":"https://github.com/nodejs/node","type":"repo","source":"github","title":"nodejs/node","description":"Node.js JavaScript runtime ✨🐢🚀✨","author":"nodejs","extra":{"stars":123485,"language":"JavaScript", ...}, ...}
+{"url":"https://github.com/nodejs/node","type":"repo","source":"github","title":"nodejs/node","description":"Node.js JavaScript runtime","author":"nodejs","extra":{"stars":123485,"language":"JavaScript", ...}, ...}
 {"url":"https://youtube.com/watch?v=dQw4w9WgXcQ","type":"video","source":"oembed","title":"Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)","author":"Rick Astley", ...}
 link-enricher: 2 enriched, 0 failed, 1 duplicates, 0 already seen, 0 invalid
 ```
 
 Each record has `url`, `key` (the dedupe identity), `type` (`reel`, `carousel`, `post`, `video`, `repo` or `site`), `host`, `ok`, `error`, `source` (`html`, `github`, `oembed`, `context` or `none`), and where found `title`, `description`, `siteName`, `author`, `publishedAt`, `lang`, `canonical`, `image`, `favicon` and `excerpt`.
+
+### Plugin example
+
+```js
+// tag.mjs
+export default async (record) => ({ source: record.host });
+```
+
+```sh
+link-enricher --plugin tag.mjs links.txt -f ndjson
+```
+
+A plugin that throws sets `pluginError` on that record and leaves the rest untouched. Only load plugins you trust; they execute local JavaScript.
 
 ## Limits
 
